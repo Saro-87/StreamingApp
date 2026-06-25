@@ -5,7 +5,7 @@ WORKDIR /app/streamingService
 COPY streamingService/package*.json ./
 RUN npm install --production
 
-COPY streamingService/package*.json ./
+COPY package*.json ./
 ENV NODE_ENV=production
 EXPOSE 3002
 
