@@ -17,11 +17,20 @@ pipeline {
             }
         }
 
-        stage('AWS Login') {
+        stage('Verify AWS') {
             steps {
                 sh '''
-                aws sts get-caller-identity
-                aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+                    echo "===== AWS Identity ====="
+                    aws sts get-caller-identity
+                '''
+            }
+        }
+
+        stage('Login to Amazon ECR') {
+            steps {
+                sh '''
+                    aws ecr get-login-password --region $AWS_REGION | \
+                    docker login --username AWS --password-stdin $ECR_REGISTRY
                 '''
             }
         }
@@ -29,43 +38,45 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 sh '''
-                docker build -t streaming-frontend ./frontend
-                docker build -t streaming-auth ./backend/authService
-                docker build -t streaming-admin ./backend/adminService
-                docker build -t streaming-chat ./backend/chatService
-                docker build -t streaming-streaming ./backend/streamingService
+                    docker build -t streaming-frontend ./frontend
+                    docker build -t streaming-auth ./backend/authService
+                    docker build -t streaming-admin ./backend/adminService
+                    docker build -t streaming-chat ./backend/chatService
+                    docker build -t streaming-streaming ./backend/streamingService
                 '''
             }
         }
 
-        stage('Tag Docker Images') {
+        stage('Tag Images') {
             steps {
                 sh '''
-                docker tag streaming-frontend:latest $ECR_REGISTRY/streaming-frontend:latest
-                docker tag streaming-auth:latest $ECR_REGISTRY/streaming-auth:latest
-                docker tag streaming-admin:latest $ECR_REGISTRY/streaming-admin:latest
-                docker tag streaming-chat:latest $ECR_REGISTRY/streaming-chat:latest
-                docker tag streaming-streaming:latest $ECR_REGISTRY/streaming-streaming:latest
+                    docker tag streaming-frontend:latest $ECR_REGISTRY/streaming-frontend:latest
+                    docker tag streaming-auth:latest $ECR_REGISTRY/streaming-auth:latest
+                    docker tag streaming-admin:latest $ECR_REGISTRY/streaming-admin:latest
+                    docker tag streaming-chat:latest $ECR_REGISTRY/streaming-chat:latest
+                    docker tag streaming-streaming:latest $ECR_REGISTRY/streaming-streaming:latest
                 '''
             }
         }
 
-        stage('Push Images to ECR') {
+        stage('Push Images to Amazon ECR') {
             steps {
                 sh '''
-                docker push $ECR_REGISTRY/streaming-frontend:latest
-                docker push $ECR_REGISTRY/streaming-auth:latest
-                docker push $ECR_REGISTRY/streaming-admin:latest
-                docker push $ECR_REGISTRY/streaming-chat:latest
-                docker push $ECR_REGISTRY/streaming-streaming:latest
+                    docker push $ECR_REGISTRY/streaming-frontend:latest
+                    docker push $ECR_REGISTRY/streaming-auth:latest
+                    docker push $ECR_REGISTRY/streaming-admin:latest
+                    docker push $ECR_REGISTRY/streaming-chat:latest
+                    docker push $ECR_REGISTRY/streaming-streaming:latest
                 '''
             }
         }
 
-        stage('Configure EKS') {
+        stage('Update kubeconfig') {
             steps {
                 sh '''
-                aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
+                    aws eks update-kubeconfig \
+                    --region $AWS_REGION \
+                    --name $CLUSTER_NAME
                 '''
             }
         }
@@ -73,7 +84,9 @@ pipeline {
         stage('Deploy using Helm') {
             steps {
                 sh '''
-                helm upgrade --install streaming-app ./helm -n $NAMESPACE --create-namespace
+                    helm upgrade --install streaming-app ./helm \
+                    --namespace $NAMESPACE \
+                    --create-namespace
                 '''
             }
         }
@@ -81,8 +94,8 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 sh '''
-                kubectl get pods -n $NAMESPACE
-                kubectl get svc -n $NAMESPACE
+                    kubectl get pods -n $NAMESPACE
+                    kubectl get svc -n $NAMESPACE
                 '''
             }
         }
@@ -91,15 +104,15 @@ pipeline {
     post {
 
         success {
-            echo '======================================='
-            echo 'Deployment Successful!'
-            echo '======================================='
+            echo "====================================="
+            echo "Deployment Completed Successfully"
+            echo "====================================="
         }
 
         failure {
-            echo '======================================='
-            echo 'Deployment Failed!'
-            echo '======================================='
+            echo "====================================="
+            echo "Deployment Failed"
+            echo "====================================="
         }
 
         always {
