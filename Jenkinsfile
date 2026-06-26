@@ -5,21 +5,23 @@ pipeline {
         AWS_ACCOUNT_ID = "341796273562"
         AWS_REGION = "us-east-1"
         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        CLUSTER_NAME = "streaming-cluster"
+        NAMESPACE = "streaming-app"
     }
 
     stages {
 
-        stage('Checkout') {
+        stage('Checkout Source') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Login to ECR') {
+        stage('AWS Login') {
             steps {
                 sh '''
-                aws ecr get-login-password --region $AWS_REGION | \
-                docker login --username AWS --password-stdin $ECR_REGISTRY
+                aws sts get-caller-identity
+                aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
                 '''
             }
         }
@@ -36,7 +38,7 @@ pipeline {
             }
         }
 
-        stage('Tag Images') {
+        stage('Tag Docker Images') {
             steps {
                 sh '''
                 docker tag streaming-frontend:latest $ECR_REGISTRY/streaming-frontend:latest
@@ -48,7 +50,7 @@ pipeline {
             }
         }
 
-        stage('Push Images') {
+        stage('Push Images to ECR') {
             steps {
                 sh '''
                 docker push $ECR_REGISTRY/streaming-frontend:latest
@@ -60,10 +62,18 @@ pipeline {
             }
         }
 
-        stage('Deploy to EKS') {
+        stage('Configure EKS') {
             steps {
                 sh '''
-                helm upgrade --install streaming-app ./helm -n streaming-app
+                aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
+                '''
+            }
+        }
+
+        stage('Deploy using Helm') {
+            steps {
+                sh '''
+                helm upgrade --install streaming-app ./helm -n $NAMESPACE --create-namespace
                 '''
             }
         }
@@ -71,10 +81,29 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 sh '''
-                kubectl get pods -n streaming-app
-                kubectl get svc -n streaming-app
+                kubectl get pods -n $NAMESPACE
+                kubectl get svc -n $NAMESPACE
                 '''
             }
+        }
+    }
+
+    post {
+
+        success {
+            echo '======================================='
+            echo 'Deployment Successful!'
+            echo '======================================='
+        }
+
+        failure {
+            echo '======================================='
+            echo 'Deployment Failed!'
+            echo '======================================='
+        }
+
+        always {
+            sh 'docker image prune -f || true'
         }
     }
 }
