@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: chat
+  namespace: streaming-app
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: chat
+
+  template:
+    metadata:
+      labels:
+        app: chat
+
+    spec:
+      containers:
+      - name: chat
+
+        image: 341796273562.dkr.ecr.us-east-1.amazonaws.com/streaming-chat:latest
+        imagePullPolicy: Always
+
+        ports:
+        - containerPort: 3004
+
+        env:
+        - name: PORT
+          value: "3004"
+
+        - name: MONGO_URI
+          value: "mongodb://mongo:27017/streamingapp"
+
+        - name: JWT_SECRET
+          value: "changeme"
+
+        - name: CLIENT_URLS
+          value: "http://localhost:3000"

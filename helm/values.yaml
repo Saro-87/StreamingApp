@@ -1,0 +1,6 @@
+replicaCount: 1
+
+namespace: streaming-app
+
+image:
+  pullPolicy: Always

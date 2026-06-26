@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: streaming
+  namespace: streaming-app
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: streaming
+
+  template:
+    metadata:
+      labels:
+        app: streaming
+
+    spec:
+      containers:
+      - name: streaming
+
+        image: 341796273562.dkr.ecr.us-east-1.amazonaws.com/streaming-streaming:latest
+        imagePullPolicy: Always
+
+        ports:
+        - containerPort: 3002
+
+        env:
+        - name: PORT
+          value: "3002"
+
+        - name: MONGO_URI
+          value: "mongodb://mongo:27017/streamingapp"
+
+        - name: JWT_SECRET
+          value: "changeme"
+
+        - name: CLIENT_URLS
+          value: "http://localhost:3000"
+
+        - name: AWS_ACCESS_KEY_ID
+          value: ""
+
+        - name: AWS_SECRET_ACCESS_KEY
+          value: ""
+
+        - name: AWS_REGION
+          value: "ap-south-1"
+
+        - name: AWS_S3_BUCKET
+          value: ""
+
+        - name: AWS_CDN_URL
+          value: ""
+
+        - name: STREAMING_PUBLIC_URL
+          value: "http://streaming:3002"

@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: admin
+  namespace: streaming-app
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: admin
+
+  template:
+    metadata:
+      labels:
+        app: admin
+
+    spec:
+      containers:
+      - name: admin
+
+        image: 341796273562.dkr.ecr.us-east-1.amazonaws.com/streaming-admin:latest
+        imagePullPolicy: Always
+
+        ports:
+        - containerPort: 3003
+
+        env:
+        - name: PORT
+          value: "3003"
+
+        - name: MONGO_URI
+          value: "mongodb://mongo:27017/streamingapp"
+
+        - name: JWT_SECRET
+          value: "changeme"
+
+        - name: CLIENT_URLS
+          value: "http://localhost:3000"
+
+        - name: AWS_ACCESS_KEY_ID
+          value: ""
+
+        - name: AWS_SECRET_ACCESS_KEY
+          value: ""
+
+        - name: AWS_REGION
+          value: "ap-south-1"
+
+        - name: AWS_S3_BUCKET
+          value: ""
+
+        - name: AWS_CDN_URL
+          value: ""
